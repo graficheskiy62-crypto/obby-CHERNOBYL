@@ -5,7 +5,7 @@
   <!-- META-ТЕГИ И ПОДКЛЮЧЕНИЕ ШРИФТОВ              -->
   <!-- ============================================ -->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title> ОББИ ЧЕРНОБЫЛЬ — Прорви через зону!</title>
 
   <!-- Подключаем жуткий шрифт для атмосферы -->
@@ -24,6 +24,16 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      /* Отключаем выделение текста на мобильных */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    /* Блокируем зум и скролл на мобильных */
+    html, body {
+      touch-action: none;
+      overscroll-behavior: none;
     }
 
     /* ---- Анимация мерцающего фона (имитация радиации) ---- */
@@ -86,6 +96,13 @@
       100% { transform: translateY(-200px) translateX(30px); opacity: 0; }
     }
 
+    /* ---- Анимация нажатия на кнопку ---- */
+    @keyframes touchButtonPress {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(0.92); }
+      100% { transform: scale(1); }
+    }
+
     /* ============================================ */
     /* ОСНОВНОЙ ФОН — ГРАДИЕНТ + ИЗображение ЧАЭС   */
     /* ============================================ */
@@ -131,7 +148,7 @@
     #game-wrapper {
       position: relative;
       z-index: 1;
-      width: 90vw;
+      width: 95vw;
       max-width: 900px;
       animation: fadeIn 1s ease-out;
     }
@@ -141,9 +158,9 @@
     /* ============================================ */
     .game-title {
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       font-family: 'Press Start 2P', cursive;
-      font-size: clamp(14px, 3vw, 28px);
+      font-size: clamp(12px, 4vw, 24px);
       /* Градиентный текст — от жёлтого к зелёному (радиация) */
       background: linear-gradient(90deg, #ffcc00, #00ff41, #ffcc00);
       background-size: 200% auto;
@@ -156,9 +173,9 @@
     /* ---- Подзаголовок ---- */
     .game-subtitle {
       text-align: center;
-      font-size: clamp(10px, 1.5vw, 14px);
+      font-size: clamp(9px, 2vw, 12px);
       color: #888;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
       letter-spacing: 2px;
     }
 
@@ -190,8 +207,8 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 15px;
-      padding: 10px 20px;
+      margin-top: 10px;
+      padding: 8px 15px;
       /* Градиентная подложка — от тёмного к чуть светлее */
       background: linear-gradient(
         90deg,
@@ -201,13 +218,13 @@
       );
       border-radius: 10px;
       border: 1px solid rgba(0, 255, 65, 0.2);
-      font-size: clamp(11px, 1.5vw, 15px);
+      font-size: clamp(10px, 2vw, 14px);
     }
 
     /* ---- Полоса здоровья ---- */
     .health-bar-container {
-      width: 150px;
-      height: 18px;
+      width: 120px;
+      height: 16px;
       background: #1a1a1a;
       border-radius: 9px;
       overflow: hidden;
@@ -252,26 +269,27 @@
 
     .overlay-title {
       font-family: 'Press Start 2P', cursive;
-      font-size: clamp(16px, 3vw, 32px);
+      font-size: clamp(14px, 4vw, 28px);
       color: #ff0040;
       text-shadow: 0 0 20px rgba(255, 0, 64, 0.6);
-      margin-bottom: 15px;
+      margin-bottom: 12px;
       animation: blink 1.5s infinite;
     }
 
     .overlay-info {
-      font-size: clamp(11px, 1.5vw, 16px);
+      font-size: clamp(10px, 2vw, 14px);
       color: #aaa;
-      margin-bottom: 25px;
+      margin-bottom: 20px;
       text-align: center;
       line-height: 1.6;
+      padding: 0 20px;
     }
 
     /* ---- Кнопка запуска / рестарта ---- */
     .btn-start {
       font-family: 'Press Start 2P', cursive;
-      font-size: clamp(10px, 1.5vw, 14px);
-      padding: 14px 36px;
+      font-size: clamp(10px, 2vw, 13px);
+      padding: 12px 30px;
       border: 2px solid #00ff41;
       /* Градиент кнопки */
       background: linear-gradient(180deg, #0a3d0a, #002200);
@@ -292,7 +310,7 @@
     /* ЗНАК РАДИАЦИИ (вращающийся)                  */
     /* ============================================ */
     .radiation-icon {
-      font-size: 50px;
+      font-size: clamp(36px, 8vw, 50px);
       margin-bottom: 10px;
       animation: spin 4s linear infinite;
       filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.6));
@@ -313,12 +331,126 @@
     }
 
     /* ============================================ */
+    /* СЕНСОРНЫЕ КНОПКИ УПРАВЛЕНИЯ (для мобильных)  */
+    /* ============================================ */
+    .touch-controls {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      height: 120px;
+      display: none; /* Показываем только на тач-устройствах */
+      z-index: 100;
+      pointer-events: none; /* Чтобы кнопки не мешали, если не активны */
+    }
+
+    /* Показываем кнопки на мобильных устройствах */
+    @media (hover: none) and (pointer: coarse),
+           (max-width: 768px) {
+      .touch-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding: 0 20px 20px;
+        pointer-events: auto;
+      }
+      
+      .game-title {
+        font-size: clamp(10px, 5vw, 20px);
+      }
+      
+      .game-subtitle {
+        font-size: clamp(8px, 2.5vw, 11px);
+      }
+      
+      #game-wrapper {
+        width: 98vw;
+      }
+      
+      .stats-panel {
+        padding: 6px 10px;
+        font-size: clamp(9px, 2.5vw, 12px);
+      }
+      
+      .health-bar-container {
+        width: 100px;
+        height: 14px;
+      }
+      
+      .controls-hint {
+        display: none; /* Скрываем подсказки клавиатуры на мобильных */
+      }
+    }
+
+    /* Группа кнопок движения (влево/вправо) */
+    .touch-move-buttons {
+      display: flex;
+      gap: 15px;
+      pointer-events: auto;
+    }
+
+    /* Кнопка прыжка */
+    .touch-jump-button {
+      pointer-events: auto;
+    }
+
+    /* Стили сенсорных кнопок */
+    .touch-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid rgba(0, 255, 65, 0.6);
+      background: rgba(0, 30, 0, 0.7);
+      color: #00ff41;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.1s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5),
+                  inset 0 0 20px rgba(0, 255, 65, 0.1);
+      /* Отключаем стандартное поведение браузера */
+      touch-action: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* Кнопка прыжка больше остальных */
+    .touch-btn.jump {
+      width: 80px;
+      height: 80px;
+      border-color: rgba(255, 200, 0, 0.6);
+      color: #ffcc00;
+      background: rgba(50, 40, 0, 0.7);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5),
+                  inset 0 0 20px rgba(255, 200, 0, 0.1);
+    }
+
+    /* Эффект нажатия */
+    .touch-btn:active,
+    .touch-btn.active {
+      transform: scale(0.92);
+      background: rgba(0, 255, 65, 0.3);
+      box-shadow: 0 0 25px rgba(0, 255, 65, 0.6),
+                  inset 0 0 30px rgba(0, 255, 65, 0.3);
+      animation: touchButtonPress 0.1s;
+    }
+
+    .touch-btn.jump:active,
+    .touch-btn.jump.active {
+      background: rgba(255, 200, 0, 0.3);
+      box-shadow: 0 0 25px rgba(255, 200, 0, 0.6),
+                  inset 0 0 30px rgba(255, 200, 0, 0.3);
+    }
+
+    /* ============================================ */
     /* ФУТЕР С ПОДСКАЗКАМИ                          -->
     /* ============================================ */
     .controls-hint {
       text-align: center;
-      margin-top: 12px;
-      font-size: clamp(9px, 1.2vw, 12px);
+      margin-top: 10px;
+      font-size: clamp(8px, 1.5vw, 11px);
       color: #555;
       letter-spacing: 1px;
     }
@@ -330,7 +462,7 @@
       border-radius: 4px;
       color: #00ff41;
       font-family: 'Press Start 2P', cursive;
-      font-size: 10px;
+      font-size: 9px;
     }
   </style>
 </head>
@@ -410,6 +542,22 @@
       <kbd>←</kbd> <kbd>→</kbd> ДВИЖЕНИЕ &nbsp;|&nbsp;
       <kbd>↑</kbd> / <kbd>ПРОБЕЛ</kbd> ПРЫЖОК &nbsp;|&nbsp;
       Двойной прыжок тоже работает!
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- СЕНСОРНЫЕ КНОПКИ УПРАВЛЕНИЯ                  -->
+  <!-- ============================================ -->
+  <div class="touch-controls" id="touch-controls">
+    <!-- Кнопки влево/вправо -->
+    <div class="touch-move-buttons">
+      <button class="touch-btn" id="btn-left" data-key="ArrowLeft">←</button>
+      <button class="touch-btn" id="btn-right" data-key="ArrowRight">→</button>
+    </div>
+    
+    <!-- Кнопка прыжка -->
+    <div class="touch-jump-button">
+      <button class="touch-btn jump" id="btn-jump" data-key="Space">↑</button>
     </div>
   </div>
 
@@ -589,6 +737,9 @@
     // ================================================
     const keys = {};
 
+    // ================================================
+    // ОБРАБОТКА КЛАВИАТУРЫ
+    // ================================================
     document.addEventListener('keydown', (e) => {
       keys[e.code] = true;
 
@@ -612,6 +763,85 @@
     document.addEventListener('keyup', (e) => {
       keys[e.code] = false;
     });
+
+    // ================================================
+    // ОБРАБОТКА СЕНСОРНОГО УПРАВЛЕНИЯ (TOUCH)
+    // ================================================
+    
+    // Получаем ссылки на кнопки
+    const btnLeft  = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+    const btnJump  = document.getElementById('btn-jump');
+
+    // Функция для обработки нажатия на сенсорную кнопку
+    function handleTouchStart(key, buttonElement) {
+      keys[key] = true;
+      buttonElement.classList.add('active');
+      
+      // Если это кнопка прыжка и игра активна
+      if ((key === 'Space' || key === 'ArrowUp') && gameState === 'playing') {
+        if (player.jumpsLeft > 0) {
+          player.vy = JUMP_FORCE;
+          player.jumpsLeft--;
+          player.isOnGround = false;
+          spawnParticles(player.x + player.width/2, player.y + player.height, 5, '#00ff41');
+        }
+      }
+    }
+
+    // Функция для обработки отпускания сенсорной кнопки
+    function handleTouchEnd(key, buttonElement) {
+      keys[key] = false;
+      buttonElement.classList.remove('active');
+    }
+
+    // Добавляем обработчики для каждой кнопки
+    // Используем и touch, и mouse события для лучшей совместимости
+    
+    // Кнопка ВЛЕВО
+    btnLeft.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleTouchStart('ArrowLeft', btnLeft);
+    }, { passive: false });
+    
+    btnLeft.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleTouchEnd('ArrowLeft', btnLeft);
+    }, { passive: false });
+    
+    btnLeft.addEventListener('mousedown', () => handleTouchStart('ArrowLeft', btnLeft));
+    btnLeft.addEventListener('mouseup', () => handleTouchEnd('ArrowLeft', btnLeft));
+    btnLeft.addEventListener('mouseleave', () => handleTouchEnd('ArrowLeft', btnLeft));
+
+    // Кнопка ВПРАВО
+    btnRight.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleTouchStart('ArrowRight', btnRight);
+    }, { passive: false });
+    
+    btnRight.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleTouchEnd('ArrowRight', btnRight);
+    }, { passive: false });
+    
+    btnRight.addEventListener('mousedown', () => handleTouchStart('ArrowRight', btnRight));
+    btnRight.addEventListener('mouseup', () => handleTouchEnd('ArrowRight', btnRight));
+    btnRight.addEventListener('mouseleave', () => handleTouchEnd('ArrowRight', btnRight));
+
+    // Кнопка ПРЫЖОК
+    btnJump.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      handleTouchStart('Space', btnJump);
+    }, { passive: false });
+    
+    btnJump.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleTouchEnd('Space', btnJump);
+    }, { passive: false });
+    
+    btnJump.addEventListener('mousedown', () => handleTouchStart('Space', btnJump));
+    btnJump.addEventListener('mouseup', () => handleTouchEnd('Space', btnJump));
+    btnJump.addEventListener('mouseleave', () => handleTouchEnd('Space', btnJump));
 
     // ================================================
     // КНОПКИ СТАРТА / РЕСТАРТА
