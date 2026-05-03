@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <!-- ============================================ -->
+  <!-- META-ТЕГИ И ПОДКЛЮЧЕНИЕ ШРИФТОВ              -->
+  <!-- ============================================ -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title> ОББИ ЧЕРНОБЫЛЬ — Прорви через зону!</title>
+
+  <!-- Подключаем жуткий шрифт для атмосферы -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Russo+One&display=swap"
+    rel="stylesheet"
+  />
+
+  <!-- ============================================ -->
+  <!-- ВСЕ СТИЛИ ИГРЫ                               -->
+  <!-- ============================================ -->
+  <style>
+    /* ---- Сброс отступов и настройка бокса ---- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* ---- Анимация мерцающего фона (имитация радиации) ---- */
+    @keyframes radiationGlow {
+      0%, 100% {
+        box-shadow: 0 0 20px rgba(0, 255, 65, 0.3),
+                    0 0 60px rgba(0, 255, 65, 0.1);
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(0, 255, 65, 0.6),
+                    0 0 120px rgba(0, 255, 65, 0.3);
+      }
+    }
+
+    /* ---- Анимация пульсации для знака радиации ---- */
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.15); opacity: 0.7; }
+    }
+
+    /* ---- Анимация дрожания экрана при ударе ---- */
+    @keyframes shake {
+      0%   { transform: translate(0, 0); }
+      20%  { transform: translate(-8px, 4px); }
+      40%  { transform: translate(6px, -6px); }
+      60%  { transform: translate(-4px, 2px); }
+      80%  { transform: translate(4px, -2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    /* ---- Анимация плавного появления ---- */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- Анимация движения облаков на фоне ---- */
+    @keyframes cloudMove {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(100vw); }
+    }
+
+    /* ---- Анимация мигания текста «GAME OVER» ---- */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ---- Анимация вращения предупреждающего значка ---- */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    /* ---- Анимация частиц радиации (плавающие зелёные точки) ---- */
+    @keyframes particleFloat {
+      0%   { transform: translateY(0) translateX(0); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 1; }
+      100% { transform: translateY(-200px) translateX(30px); opacity: 0; }
+    }
+
+    /* ============================================ */
+    /* ОСНОВНОЙ ФОН — ГРАДИЕНТ + ИЗображение ЧАЭС   */
+    /* ============================================ */
+    body {
+      /* Градиент от тёмно-серого к чёрному с зелёным оттенком */
+      background: linear-gradient(
+        180deg,
+        #1a1a2e 0%,
+        #16213e 30%,
+        #0f3460 60%,
+        #0a0a0a 100%
+      );
+      font-family: 'Russo One', sans-serif;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #e0e0e0;
+    }
+
+    /* ---- Полупрозрачный слой поверх фона для читаемости ---- */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      /* Зелёное радиационное свечение */
+      background: radial-gradient(
+        ellipse at 50% 0%,
+        rgba(0, 255, 65, 0.08) 0%,
+        transparent 60%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ============================================ */
+    /* КОНТЕЙНЕР ИГРЫ                               */
+    /* ============================================ */
+    #game-wrapper {
+      position: relative;
+      z-index: 1;
+      width: 90vw;
+      max-width: 900px;
+      animation: fadeIn 1s ease-out;
+    }
+
+    /* ============================================ */
+    /* ЗАГОЛОВОК ИГРЫ                               */
+    /* ============================================ */
+    .game-title {
+      text-align: center;
+      margin-bottom: 15px;
+      font-family: 'Press Start 2P', cursive;
+      font-size: clamp(14px, 3vw, 28px);
+      /* Градиентный текст — от жёлтого к зелёному (радиация) */
+      background: linear-gradient(90deg, #ffcc00, #00ff41, #ffcc00);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: radiationGlow 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 10px rgba(0, 255, 65, 0.5));
+    }
+
+    /* ---- Подзаголовок ---- */
+    .game-subtitle {
+      text-align: center;
+      font-size: clamp(10px, 1.5vw, 14px);
+      color: #888;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+
+    /* ============================================ */
+    /* ИГРОВОЕ ПОЛЕ (CANVAS)                        */
+    /* ============================================ */
+    #game-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border: 2px solid rgba(0, 255, 65, 0.4);
+      border-radius: 12px;
+      /* Зелёное свечение рамки */
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.2),
+                  inset 0 0 30px rgba(0, 0, 0, 0.5);
+      background: #0d0d0d;
+      cursor: pointer;
+    }
+
+    /* Когда экран трясётся при получении урона */
+    #game-canvas.shaking {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* ============================================ */
+    /* ПАНЕЛЬ СЧЁТА И ЗДОРОВЬЯ                      */
+    /* ============================================ */
+    .stats-panel {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding: 10px 20px;
+      /* Градиентная подложка — от тёмного к чуть светлее */
+      background: linear-gradient(
+        90deg,
+        rgba(0, 255, 65, 0.08),
+        rgba(0, 255, 65, 0.15),
+        rgba(0, 255, 65, 0.08)
+      );
+      border-radius: 10px;
+      border: 1px solid rgba(0, 255, 65, 0.2);
+      font-size: clamp(11px, 1.5vw, 15px);
+    }
+
+    /* ---- Полоса здоровья ---- */
+    .health-bar-container {
+      width: 150px;
+      height: 18px;
+      background: #1a1a1a;
+      border-radius: 9px;
+      overflow: hidden;
+      border: 1px solid #333;
+    }
+
+    .health-bar-fill {
+      height: 100%;
+      width: 100%;
+      /* Градиент — от зелёного к красному в зависимости от здоровья */
+      background: linear-gradient(90deg, #ff0040, #ffcc00, #00ff41);
+      transition: width 0.3s ease;
+      border-radius: 9px;
+    }
+
+    /* ============================================ */
+    /* ЭКРАН ЗАПУСКА / GAME OVER                    */
+    /* ============================================ */
+    .overlay-screen {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      /* Полупрозрачный тёмный градиент */
+      background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.85) 0%,
+        rgba(20, 0, 0, 0.9) 100%
+      );
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      transition: opacity 0.5s;
+    }
+
+    .overlay-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .overlay-title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: clamp(16px, 3vw, 32px);
+      color: #ff0040;
+      text-shadow: 0 0 20px rgba(255, 0, 64, 0.6);
+      margin-bottom: 15px;
+      animation: blink 1.5s infinite;
+    }
+
+    .overlay-info {
+      font-size: clamp(11px, 1.5vw, 16px);
+      color: #aaa;
+      margin-bottom: 25px;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ---- Кнопка запуска / рестарта ---- */
+    .btn-start {
+      font-family: 'Press Start 2P', cursive;
+      font-size: clamp(10px, 1.5vw, 14px);
+      padding: 14px 36px;
+      border: 2px solid #00ff41;
+      /* Градиент кнопки */
+      background: linear-gradient(180deg, #0a3d0a, #002200);
+      color: #00ff41;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+    }
+
+    .btn-start:hover {
+      background: linear-gradient(180deg, #0f5f0f, #003300);
+      box-shadow: 0 0 25px rgba(0, 255, 65, 0.5);
+      transform: scale(1.05);
+    }
+
+    /* ============================================ */
+    /* ЗНАК РАДИАЦИИ (вращающийся)                  */
+    /* ============================================ */
+    .radiation-icon {
+      font-size: 50px;
+      margin-bottom: 10px;
+      animation: spin 4s linear infinite;
+      filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.6));
+    }
+
+    /* ============================================ */
+    /* ЧАСТИЦЫ РАДИАЦИИ (плавающие зелёные точки)   */
+    /* ============================================ */
+    .radiation-particle {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      background: #00ff41;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      box-shadow: 0 0 6px #00ff41;
+    }
+
+    /* ============================================ */
+    /* ФУТЕР С ПОДСКАЗКАМИ                          -->
+    /* ============================================ */
+    .controls-hint {
+      text-align: center;
+      margin-top: 12px;
+      font-size: clamp(9px, 1.2vw, 12px);
+      color: #555;
+      letter-spacing: 1px;
+    }
+
+    .controls-hint kbd {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #00ff41;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ============================================ -->
+  <!-- ПЛАВАЮЩИЕ ЧАСТИЦЫ РАДИАЦИИ (создаются JS)   -->
+  <!-- ============================================ -->
+
+  <!-- ============================================ -->
+  <!-- ОСНОВНОЙ КОНТЕЙНЕР ИГРЫ                      -->
+  <!-- ============================================ -->
+  <div id="game-wrapper">
+
+    <!-- Заголовок -->
+    <h1 class="game-title">⚛️ ОББИ ЧЕРНОБЫЛЬ ⚛️</h1>
+    <p class="game-subtitle">ПРОРВИСЬ ЧЕРЕЗ ЗОНУ ОТЧУЖДЕНИЯ</p>
+
+    <!-- Игровое поле + оверлеи -->
+    <div style="position: relative;">
+
+      <!-- Канвас для отрисовки игры -->
+      <canvas id="game-canvas" width="900" height="500"></canvas>
+
+      <!-- ---- Экран запуска ---- -->
+      <div class="overlay-screen" id="start-screen">
+        <div class="radiation-icon">☢️</div>
+        <div class="overlay-title">ЗОНА ОТЧУЖДЕНИЯ</div>
+        <div class="overlay-info">
+          Прыгай по платформам, избегай радиации!<br>
+          Собери артефакты для бонусных очков.<br>
+          Доберись до ЧАЭС и побеждай!
+        </div>
+        <button class="btn-start" id="btn-start">▶ НАЧАТЬ</button>
+      </div>
+
+      <!-- ---- Экран GAME OVER ---- -->
+      <div class="overlay-screen hidden" id="gameover-screen">
+        <div class="radiation-icon">☠️</div>
+        <div class="overlay-title">GAME OVER</div>
+        <div class="overlay-info" id="gameover-info">
+          Ты не выжил в Зоне...
+        </div>
+        <button class="btn-start" id="btn-restart">🔄 ЗАНОВО</button>
+      </div>
+
+      <!-- ---- Экран ПОБЕДЫ ---- -->
+      <div class="overlay-screen hidden" id="win-screen">
+        <div class="radiation-icon">🏆</div>
+        <div class="overlay-title" style="color: #00ff41; animation: none;">
+          ТЫ ВЫЖИЛ!
+        </div>
+        <div class="overlay-info" id="win-info">
+          ЧАЭС покорена!
+        </div>
+        <button class="btn-start" id="btn-play-again"> ЕЩЁ РАЗ</button>
+      </div>
+    </div>
+
+    <!-- Панель статистики -->
+    <div class="stats-panel">
+      <!-- Здоровье -->
+      <div>
+        <span>❤️ </span>
+        <div class="health-bar-container">
+          <div class="health-bar-fill" id="health-fill"></div>
+        </div>
+      </div>
+      <!-- Очки -->
+      <div id="score-display">⭐ Очки: 0</div>
+      <!-- Уровень -->
+      <div id="level-display">🏁 Уровень: 1</div>
+    </div>
+
+    <!-- Подсказки управления -->
+    <div class="controls-hint">
+      <kbd>←</kbd> <kbd>→</kbd> ДВИЖЕНИЕ &nbsp;|&nbsp;
+      <kbd>↑</kbd> / <kbd>ПРОБЕЛ</kbd> ПРЫЖОК &nbsp;|&nbsp;
+      Двойной прыжок тоже работает!
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ИГРОВАЯ ЛОГИКА (JAVASCRIPT)                  -->
+  <!-- ============================================ -->
+  <script>
+    // ================================================
+    // ПОЛУЧАЕМ ССЫЛКУ НА CANVAS И КОНТЕКСТ РИСОВАНИЯ
+    // ================================================
+    const canvas = document.getElementById('game-canvas');
+    const ctx    = canvas.getContext('2d');
+
+    // ================================================
+    // КОНСТАНТЫ И НАСТРОЙКИ ИГРЫ
+    // ================================================
+    const GRAVITY      = 0.6;       // Сила гравитации (пикселей за кадр)
+    const JUMP_FORCE   = -12;       // Сила прыжка (отрицательная — вверх)
+    const MOVE_SPEED   = 5;         // Скорость движения игрока
+    const MAX_HEALTH   = 100;       // Максимальное здоровье
+    const TOTAL_LEVELS = 3;         // Количество уровней
+
+    // ================================================
+    // СОСТОЯНИЕ ИГРЫ
+    // ================================================
+    let gameState   = 'start';  // 'start' | 'playing' | 'gameover' | 'win'
+    let score       = 0;        // Текущий счёт
+    let currentLevel = 1;       // Текущий уровень
+    let cameraX     = 0;        // Позиция камеры (горизонтальная прокрутка)
+    let particles   = [];       // Массив визуальных частиц
+    let frameCount  = 0;        // Счётчик кадров (для анимаций)
+
+    // ================================================
+    // ИГРОК — объект с позицией, скоростью, здоровьем
+    // ================================================
+    let player = {
+      x: 60,            // Позиция по X
+      y: 350,           // Позиция по Y
+      width: 30,        // Ширина
+      height: 40,       // Высота
+      vx: 0,            // Скорость по X
+      vy: 0,            // Скорость по Y
+      health: MAX_HEALTH,
+      jumpsLeft: 2,     // Доступные прыжки (двойной прыжок!)
+      isOnGround: false,
+      facing: 1,        // 1 = вправо, -1 = влево
+      invincible: 0,    // Таймер неуязвимости (после удара)
+      animFrame: 0      // Кадр анимации ходьбы
+    };
+
+    // ================================================
+    // УРОВНИ — массив платформ, препятствий, бонусов
+    // Каждая платформа: {x, y, width, height, type}
+    // ================================================
+    const levels = [
+      // ---- УРОВЕНЬ 1: Окраина Зоны (простой) ----
+      {
+        platforms: [
+          // Земля
+          { x: 0,   y: 450, w: 300, h: 50, type: 'ground' },
+          { x: 350, y: 450, w: 200, h: 50, type: 'ground' },
+          { x: 600, y: 450, w: 400, h: 50, type: 'ground' },
+          { x: 1050,y: 450, w: 300, h: 50, type: 'ground' },
+          { x: 1400,y: 450, w: 500, h: 50, type: 'ground' },
+          // Платформы
+          { x: 200, y: 350, w: 100, h: 15, type: 'concrete' },
+          { x: 400, y: 300, w: 80,  h: 15, type: 'metal' },
+          { x: 580, y: 340, w: 100, h: 15, type: 'concrete' },
+          { x: 800, y: 280, w: 120, h: 15, type: 'metal' },
+          { x: 1000,y: 350, w: 80,  h: 15, type: 'wood' },
+          { x: 1200,y: 300, w: 100, h: 15, type: 'concrete' },
+          { x: 1500,y: 340, w: 120, h: 15, type: 'metal' },
+        ],
+        // Радиационные зоны (наносят урон)
+        hazards: [
+          { x: 310, y: 420, w: 40, h: 30, type: 'radiation' },
+          { x: 700, y: 420, w: 50, h: 30, type: 'radiation' },
+          { x: 1100,y: 420, w: 40, h: 30, type: 'radiation' },
+        ],
+        // Артефакты (бонусные очки)
+        collectibles: [
+          { x: 240, y: 310, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 620, y: 300, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 840, y: 240, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 1240,y: 260, w: 20, h: 20, type: 'artifact', collected: false },
+        ],
+        // Флаг финиша
+        flag: { x: 1800, y: 390, w: 40, h: 60 },
+        // Длина уровня
+        width: 1900
+      },
+
+      // ---- УРОВЕНЬ 2: Рыжий лес (средний) ----
+      {
+        platforms: [
+          { x: 0,   y: 450, w: 200, h: 50, type: 'ground' },
+          { x: 280, y: 400, w: 80,  h: 15, type: 'wood' },
+          { x: 430, y: 340, w: 100, h: 15, type: 'concrete' },
+          { x: 600, y: 400, w: 80,  h: 15, type: 'metal' },
+          { x: 750, y: 300, w: 120, h: 15, type: 'concrete' },
+          { x: 950, y: 450, w: 150, h: 50, type: 'ground' },
+          { x: 1150,y: 350, w: 80,  h: 15, type: 'metal' },
+          { x: 1300,y: 280, w: 100, h: 15, type: 'concrete' },
+          { x: 1450,y: 400, w: 100, h: 15, type: 'wood' },
+          { x: 1600,y: 320, w: 120, h: 15, type: 'metal' },
+          { x: 1800,y: 450, w: 300, h: 50, type: 'ground' },
+          // Движущиеся платформы
+          { x: 500, y: 250, w: 80, h: 15, type: 'moving', moveRange: 80, moveSpeed: 1.5, originX: 500, originY: 250, moveAxis: 'x' },
+          { x: 1100,y: 220, w: 80, h: 15, type: 'moving', moveRange: 60, moveSpeed: 2, originX: 1100, originY: 220, moveAxis: 'y' },
+        ],
+        hazards: [
+          { x: 100, y: 420, w: 50, h: 30, type: 'radiation' },
+          { x: 500, y: 370, w: 60, h: 30, type: 'radiation' },
+          { x: 900, y: 420, w: 50, h: 30, type: 'radiation' },
+          { x: 1400,y: 370, w: 50, h: 30, type: 'radiation' },
+          { x: 1700,y: 420, w: 60, h: 30, type: 'radiation' },
+        ],
+        collectibles: [
+          { x: 460, y: 300, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 790, y: 260, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 1340,y: 240, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 1640,y: 280, w: 20, h: 20, type: 'artifact', collected: false },
+        ],
+        flag: { x: 2000, y: 390, w: 40, h: 60 },
+        width: 2100
+      },
+
+      // ---- УРОВЕНЬ 3: ЧАЭС (сложный) ----
+      {
+        platforms: [
+          { x: 0,   y: 450, w: 150, h: 50, type: 'ground' },
+          { x: 220, y: 380, w: 70,  h: 15, type: 'metal' },
+          { x: 370, y: 310, w: 80,  h: 15, type: 'concrete' },
+          { x: 530, y: 380, w: 60,  h: 15, type: 'wood' },
+          { x: 660, y: 280, w: 100, h: 15, type: 'metal' },
+          { x: 830, y: 350, w: 80,  h: 15, type: 'concrete' },
+          { x: 980, y: 450, w: 100, h: 50, type: 'ground' },
+          { x: 1130,y: 300, w: 70,  h: 15, type: 'metal' },
+          { x: 1270,y: 230, w: 90,  h: 15, type: 'concrete' },
+          { x: 1430,y: 320, w: 80,  h: 15, type: 'moving', moveRange: 50, moveSpeed: 2, originX: 1430, originY: 320, moveAxis: 'y' },
+          { x: 1600,y: 400, w: 100, h: 15, type: 'metal' },
+          { x: 1770,y: 300, w: 80,  h: 15, type: 'concrete' },
+          { x: 1920,y: 450, w: 200, h: 50, type: 'ground' },
+          // Узкие платформы над реактором
+          { x: 550, y: 200, w: 60,  h: 10, type: 'metal' },
+          { x: 700, y: 170, w: 60,  h: 10, type: 'metal' },
+          { x: 850, y: 200, w: 60,  h: 10, type: 'metal' },
+        ],
+        hazards: [
+          { x: 150, y: 420, w: 50, h: 30, type: 'radiation' },
+          { x: 440, y: 350, w: 40, h: 30, type: 'radiation' },
+          { x: 730, y: 250, w: 50, h: 30, type: 'radiation' },
+          { x: 1050,y: 420, w: 60, h: 30, type: 'radiation' },
+          { x: 1500,y: 290, w: 50, h: 30, type: 'radiation' },
+          { x: 1830,y: 420, w: 50, h: 30, type: 'radiation' },
+          // Лазерные лучи (горизонтальные)
+          { x: 500, y: 420, w: 200, h: 8, type: 'laser' },
+          { x: 1300,y: 380, w: 150, h: 8, type: 'laser' },
+        ],
+        collectibles: [
+          { x: 240, y: 340, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 690, y: 240, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 1290,y: 190, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 1950,y: 410, w: 20, h: 20, type: 'artifact', collected: false },
+          { x: 570, y: 160, w: 20, h: 20, type: 'artifact', collected: false },
+        ],
+        flag: { x: 2050, y: 390, w: 40, h: 60 },
+        width: 2150
+      }
+    ];
+
+    // Текущий уровень (копия для перезапуска)
+    let currentLevelData = null;
+
+    // ================================================
+    // УПРАВЛЕНИЕ — отслеживание нажатых клавиш
+    // ================================================
+    const keys = {};
+
+    document.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+
+      // Предотвращаем скролл страницы стрелками
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) {
+        e.preventDefault();
+      }
+
+      // Прыжок при нажатии
+      if ((e.code === 'ArrowUp' || e.code === 'Space') && gameState === 'playing') {
+        if (player.jumpsLeft > 0) {
+          player.vy = JUMP_FORCE;
+          player.jumpsLeft--;
+          player.isOnGround = false;
+          // Эффект частиц при прыжке
+          spawnParticles(player.x + player.width/2, player.y + player.height, 5, '#00ff41');
+        }
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      keys[e.code] = false;
+    });
+
+    // ================================================
+    // КНОПКИ СТАРТА / РЕСТАРТА
+    // ================================================
+    document.getElementById('btn-start').addEventListener('click', startGame);
+    document.getElementById('btn-restart').addEventListener('click', restartGame);
+    document.getElementById('btn-play-again').addEventListener('click', restartGame);
+
+    // ================================================
+    // ФУНКЦИЯ: ЗАПУСК ИГРЫ
+    // ================================================
+    function startGame() {
+      document.getElementById('start-screen').classList.add('hidden');
+      loadLevel(1);
+      gameState = 'playing';
+      gameLoop();
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: ЗАГРУЗКА УРОВНЯ
+    // ================================================
+    function loadLevel(levelNum) {
+      currentLevel = levelNum;
+      // Глубокое копирование данных уровня (чтобы не портить оригинал)
+      currentLevelData = JSON.parse(JSON.stringify(levels[levelNum - 1]));
+
+      // Сброс позиции игрока
+      player.x = 60;
+      player.y = 350;
+      player.vx = 0;
+      player.vy = 0;
+      player.health = MAX_HEALTH;
+      player.jumpsLeft = 2;
+      player.invincible = 0;
+      cameraX = 0;
+      particles = [];
+
+      updateUI();
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РЕСТАРТ
+    // ================================================
+    function restartGame() {
+      document.getElementById('gameover-screen').classList.add('hidden');
+      document.getElementById('win-screen').classList.add('hidden');
+      score = 0;
+      loadLevel(1);
+      gameState = 'playing';
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: ОБНОВЛЕНИЕ UI (здоровье, очки, уровень)
+    // ================================================
+    function updateUI() {
+      // Обновляем полосу здоровья
+      const healthPercent = Math.max(0, (player.health / MAX_HEALTH) * 100);
+      document.getElementById('health-fill').style.width = healthPercent + '%';
+      document.getElementById('score-display').textContent = '⭐ Очки: ' + score;
+      document.getElementById('level-display').textContent = ' Уровень: ' + currentLevel;
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: СОЗДАНИЕ ЧАСТИЦ
+    // ================================================
+    function spawnParticles(x, y, count, color) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: x + (Math.random() - 0.5) * 20,
+          y: y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: -Math.random() * 3 - 1,
+          life: 30 + Math.random() * 20,
+          maxLife: 50,
+          color: color,
+          size: 2 + Math.random() * 3
+        });
+      }
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: ПРОВЕРКА СТОЛКНОВЕНИЙ (AABB)
+    // ================================================
+    function rectCollision(a, b) {
+      return a.x < b.x + b.w &&
+             a.x + a.width  > b.x &&
+             a.y < b.y + b.h &&
+             a.y + a.height > b.y;
+    }
+
+    // ================================================
+    // ОСНОВНОЙ ИГРОВОЙ ЦИКЛ
+    // ================================================
+    function gameLoop() {
+      if (gameState !== 'playing') return;
+
+      frameCount++;
+      update();
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: ОБНОВЛЕНИЕ ЛОГИКИ (каждый кадр)
+    // ================================================
+    function update() {
+      // ---- Движение игрока влево/вправо ----
+      player.vx = 0;
+      if (keys['ArrowLeft'] || keys['KeyA']) {
+        player.vx = -MOVE_SPEED;
+        player.facing = -1;
+      }
+      if (keys['ArrowRight'] || keys['KeyD']) {
+        player.vx = MOVE_SPEED;
+        player.facing = 1;
+      }
+
+      // Анимация ходьбы
+      if (player.vx !== 0 && player.isOnGround) {
+        player.animFrame += 0.15;
+      }
+
+      // ---- Гравитация ----
+      player.vy += GRAVITY;
+
+      // ---- Обновление позиции ----
+      player.x += player.vx;
+      player.y += player.vy;
+
+      // ---- Столкновение с платформами ----
+      player.isOnGround = false;
+      for (let plat of currentLevelData.platforms) {
+        // Обновляем позицию движущихся платформ
+        if (plat.type === 'moving') {
+          if (plat.moveAxis === 'x') {
+            plat.x = plat.originX + Math.sin(frameCount * plat.moveSpeed * 0.02) * plat.moveRange;
+          } else {
+            plat.y = plat.originY + Math.sin(frameCount * plat.moveSpeed * 0.02) * plat.moveRange;
+          }
+        }
+
+        // Проверяем столкновение
+        if (rectCollision(player, plat)) {
+          // Столкновение сверху (приземление)
+          if (player.vy > 0 && player.y + player.height - player.vy <= plat.y + 5) {
+            player.y = plat.y - player.height;
+            player.vy = 0;
+            player.isOnGround = true;
+            player.jumpsLeft = 2; // Восстанавливаем прыжки
+          }
+          // Столкновение снизу (удар головой)
+          else if (player.vy < 0 && player.y - player.vy >= plat.y + plat.h) {
+            player.y = plat.y + plat.h;
+            player.vy = 0;
+          }
+          // Столкновение сбоку
+          else if (player.vx > 0) {
+            player.x = plat.x - player.width;
+          } else if (player.vx < 0) {
+            player.x = plat.x + plat.w;
+          }
+        }
+      }
+
+      // ---- Столкновение с радиацией / лазерами ----
+      if (player.invincible > 0) {
+        player.invincible--;
+      } else {
+        for (let hazard of currentLevelData.hazards) {
+          if (rectCollision(player, hazard)) {
+            // Наносим урон
+            let damage = hazard.type === 'laser' ? 25 : 15;
+            player.health -= damage;
+            player.invincible = 60; // 1 секунда неуязвимости
+
+            // Тряска экрана
+            canvas.classList.add('shaking');
+            setTimeout(() => canvas.classList.remove('shaking'), 400);
+
+            // Частицы при ударе
+            spawnParticles(player.x + player.width/2, player.y + player.height/2, 10, '#ff0040');
+
+            if (player.health <= 0) {
+              gameOver();
+              return;
+            }
+            break;
+          }
+        }
+      }
+
+      // ---- Сбор артефактов ----
+      for (let item of currentLevelData.collectibles) {
+        if (!item.collected && rectCollision(player, item)) {
+          item.collected = true;
+          score += 100;
+          spawnParticles(item.x + item.w/2, item.y + item.h/2, 8, '#ffcc00');
+          updateUI();
+        }
+      }
+
+      // ---- Проверка финиша ----
+      const flag = currentLevelData.flag;
+      if (rectCollision(player, flag)) {
+        if (currentLevel < TOTAL_LEVELS) {
+          // Переход на следующий уровень
+          currentLevel++;
+          score += 500; // Бонус за уровень
+          loadLevel(currentLevel);
+        } else {
+          // Победа!
+          winGame();
+          return;
+        }
+      }
+
+      // ---- Падение в пропасть ----
+      if (player.y > 600) {
+        player.health -= 30;
+        if (player.health <= 0) {
+          gameOver();
+          return;
+        }
+        // Возвращаем игрока на ближайшую платформу
+        player.x = 60;
+        player.y = 350;
+        player.vy = 0;
+        player.invincible = 90;
+        spawnParticles(60, 350, 15, '#ff0040');
+      }
+
+      // ---- Ограничение слева ----
+      if (player.x < 0) player.x = 0;
+
+      // ---- Обновление камеры (плавное следование за игроком) ----
+      const targetCamX = player.x - canvas.width / 3;
+      cameraX += (targetCamX - cameraX) * 0.1;
+      if (cameraX < 0) cameraX = 0;
+      const maxCamX = currentLevelData.width - canvas.width;
+      if (cameraX > maxCamX) cameraX = maxCamX;
+
+      // ---- Обновление частиц ----
+      for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.1; // лёгкая гравитация для частиц
+        p.life--;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      updateUI();
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: ОТРИСОВКА (каждый кадр)
+    // ================================================
+    function render() {
+      // ---- Очищаем канвас ----
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // ---- Сохраняем контекст для трансформации камеры ----
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+
+      // ============================================
+      // 1. ФОН — небо с градиентом
+      // ============================================
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      skyGrad.addColorStop(0, '#0a0a1a');       // Тёмно-синий верх
+      skyGrad.addColorStop(0.4, '#1a1a3e');     // Чуть светлее
+      skyGrad.addColorStop(0.7, '#2a1a1a');     // Красноватый горизонт
+      skyGrad.addColorStop(1, '#1a0a0a');       // Тёмный низ
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+
+      // ---- Зелёное радиационное свечение в небе ----
+      const glowGrad = ctx.createRadialGradient(
+        cameraX + canvas.width * 0.6, 80, 0,
+        cameraX + canvas.width * 0.6, 80, 300
+      );
+      glowGrad.addColorStop(0, 'rgba(0, 255, 65, 0.15)');
+      glowGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = glowGrad;
+      ctx.fillRect(cameraX, 0, canvas.width, canvas.height);
+
+      // ============================================
+      // 2. ДАЛЬНИЙ ПЛАН — силуэты зданий ЧАЭС
+      // ============================================
+      drawChernobylSkyline();
+
+      // ============================================
+      // 3. ПЛАТФОРМЫ
+      // ============================================
+      for (let plat of currentLevelData.platforms) {
+        drawPlatform(plat);
+      }
+
+      // ============================================
+      // 4. ОПАСНЫЕ ЗОНЫ (радиация, лазеры)
+      // ============================================
+      for (let hazard of currentLevelData.hazards) {
+        drawHazard(hazard);
+      }
+
+      // ============================================
+      // 5. АРТЕФАКТЫ
+      // ============================================
+      for (let item of currentLevelData.collectibles) {
+        if (!item.collected) {
+          drawArtifact(item);
+        }
+      }
+
+      // ============================================
+      // 6. ФЛАГ ФИНИША
+      // ============================================
+      drawFlag(currentLevelData.flag);
+
+      // ============================================
+      // 7. ИГРОК
+      // ============================================
+      drawPlayer();
+
+      // ============================================
+      // 8. ЧАСТИЦЫ
+      // ============================================
+      for (let p of particles) {
+        const alpha = p.life / p.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // ---- Восстанавливаем контекст ----
+      ctx.restore();
+
+      // ============================================
+      // 9. VINIGNETTE (виньетка по краям)
+      // ============================================
+      drawVignette();
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ СИЛУЭТА ЧАЭС НА ФОНЕ
+    // ================================================
+    function drawChernobylSkyline() {
+      const baseX = cameraX + 200;
+      const baseY = 300;
+
+      ctx.fillStyle = '#0d0d1a';
+
+      // Основное здание реактора (большой купол)
+      ctx.beginPath();
+      ctx.moveTo(baseX, baseY);
+      ctx.quadraticCurveTo(baseX + 150, baseY - 180, baseX + 300, baseY);
+      ctx.fill();
+
+      // Вторая труба
+      ctx.fillRect(baseX + 320, baseY - 100, 25, 100);
+
+      // Старая часть здания (разрушенная)
+      ctx.fillStyle = '#0a0a15';
+      ctx.fillRect(baseX - 40, baseY - 60, 80, 60);
+      ctx.fillRect(baseX + 50, baseY - 50, 60, 50);
+
+      // Окна (светящиеся зелёным)
+      ctx.fillStyle = `rgba(0, 255, 65, ${0.3 + Math.sin(frameCount * 0.05) * 0.2})`;
+      ctx.fillRect(baseX - 25, baseY - 45, 10, 10);
+      ctx.fillRect(baseX - 10, baseY - 45, 10, 10);
+      ctx.fillRect(baseX + 65, baseY - 35, 10, 10);
+
+      // Дым из труб
+      ctx.fillStyle = 'rgba(80, 80, 80, 0.3)';
+      for (let i = 0; i < 5; i++) {
+        const smokeY = baseY - 120 - i * 20;
+        const smokeX = baseX + 332 + Math.sin(frameCount * 0.03 + i) * 15;
+        ctx.beginPath();
+        ctx.arc(smokeX, smokeY, 15 + i * 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ ПЛАТФОРМЫ
+    // ================================================
+    function drawPlatform(plat) {
+      let grad;
+
+      switch (plat.type) {
+        case 'ground':
+          // Земля — коричневый градиент
+          grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + plat.h);
+          grad.addColorStop(0, '#3a3a2a');
+          grad.addColorStop(1, '#2a2a1a');
+          ctx.fillStyle = grad;
+          break;
+        case 'concrete':
+          // Бетон — серый градиент
+          grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + plat.h);
+          grad.addColorStop(0, '#6a6a6a');
+          grad.addColorStop(1, '#4a4a4a');
+          ctx.fillStyle = grad;
+          break;
+        case 'metal':
+          // Металл — тёмно-серый с ржавчиной
+          grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + plat.h);
+          grad.addColorStop(0, '#8a7a5a');
+          grad.addColorStop(1, '#5a4a3a');
+          ctx.fillStyle = grad;
+          break;
+        case 'wood':
+          // Дерево — коричневый
+          grad = ctx.createLinearGradient(plat.x, plat.y, plat.x, plat.y + plat.h);
+          grad.addColorStop(0, '#8a6a3a');
+          grad.addColorStop(1, '#5a3a1a');
+          ctx.fillStyle = grad;
+          break;
+        case 'moving':
+          // Движущаяся — зелёное свечение
+          const pulse = Math.sin(frameCount * 0.1) * 0.3 + 0.7;
+          ctx.fillStyle = `rgba(0, 255, 65, ${pulse * 0.5})`;
+          ctx.shadowColor = '#00ff41';
+          ctx.shadowBlur = 10;
+          break;
+      }
+
+      ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+      ctx.shadowBlur = 0;
+
+      // Текстура — линии на платформе
+      ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+      ctx.lineWidth = 1;
+      for (let lx = plat.x; lx < plat.x + plat.w; lx += 15) {
+        ctx.beginPath();
+        ctx.moveTo(lx, plat.y);
+        ctx.lineTo(lx, plat.y + plat.h);
+        ctx.stroke();
+      }
+
+      // Трещины на бетоне
+      if (plat.type === 'concrete' || plat.type === 'ground') {
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.beginPath();
+        ctx.moveTo(plat.x + 10, plat.y);
+        ctx.lineTo(plat.x + 25, plat.y + plat.h);
+        ctx.lineTo(plat.x + 40, plat.y);
+        ctx.stroke();
+      }
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ ОПАСНОЙ ЗОНЫ
+    // ================================================
+    function drawHazard(hazard) {
+      if (hazard.type === 'radiation') {
+        // Пульсирующее зелёное свечение
+        const pulse = Math.sin(frameCount * 0.08) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(0, 255, 65, ${pulse * 0.4})`;
+        ctx.fillRect(hazard.x, hazard.y, hazard.w, hazard.h);
+
+        // Знак радиации (упрощённый)
+        ctx.fillStyle = `rgba(0, 255, 65, ${pulse * 0.8})`;
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('☢', hazard.x + hazard.w/2, hazard.y + hazard.h/2 + 7);
+
+        // Радиационные круги
+        ctx.strokeStyle = `rgba(0, 255, 65, ${pulse * 0.3})`;
+        ctx.lineWidth = 1;
+        for (let r = 10; r < 40; r += 10) {
+          ctx.beginPath();
+          ctx.arc(hazard.x + hazard.w/2, hazard.y + hazard.h/2, r + Math.sin(frameCount * 0.05 + r) * 5, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+      } else if (hazard.type === 'laser') {
+        // Мигающий лазерный луч
+        const blink = Math.sin(frameCount * 0.15) > 0;
+        if (blink) {
+          // Яркий луч
+          const laserGrad = ctx.createLinearGradient(hazard.x, hazard.y, hazard.x + hazard.w, hazard.y);
+          laserGrad.addColorStop(0, 'rgba(255, 0, 64, 0.1)');
+          laserGrad.addColorStop(0.5, 'rgba(255, 0, 64, 0.9)');
+          laserGrad.addColorStop(1, 'rgba(255, 0, 64, 0.1)');
+          ctx.fillStyle = laserGrad;
+          ctx.fillRect(hazard.x, hazard.y, hazard.w, hazard.h);
+
+          // Свечение
+          ctx.shadowColor = '#ff0040';
+          ctx.shadowBlur = 15;
+          ctx.fillStyle = '#ff0040';
+          ctx.fillRect(hazard.x, hazard.y + 2, hazard.w, 2);
+          ctx.shadowBlur = 0;
+        }
+      }
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ АРТЕФАКТА
+    // ================================================
+    function drawArtifact(item) {
+      // Парящий артефакт с синусоидальным движением
+      const floatY = item.y + Math.sin(frameCount * 0.08) * 5;
+
+      // Свечение
+      const glow = ctx.createRadialGradient(
+        item.x + item.w/2, floatY + item.h/2, 0,
+        item.x + item.w/2, floatY + item.h/2, 25
+      );
+      glow.addColorStop(0, 'rgba(255, 200, 0, 0.6)');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.fillRect(item.x - 10, floatY - 10, item.w + 20, item.h + 20);
+
+      // Сам артефакт — ромб
+      ctx.save();
+      ctx.translate(item.x + item.w/2, floatY + item.h/2);
+      ctx.rotate(frameCount * 0.05);
+      ctx.fillStyle = '#ffcc00';
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(10, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-10, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ ФЛАГА ФИНИША
+    // ================================================
+    function drawFlag(flag) {
+      // Столб
+      ctx.fillStyle = '#888';
+      ctx.fillRect(flag.x, flag.y, 4, flag.h);
+
+      // Флаг (анимированный)
+      const wave = Math.sin(frameCount * 0.1) * 3;
+      ctx.fillStyle = '#00ff41';
+      ctx.beginPath();
+      ctx.moveTo(flag.x + 4, flag.y);
+      ctx.lineTo(flag.x + 30 + wave, flag.y + 10);
+      ctx.lineTo(flag.x + 4, flag.y + 20);
+      ctx.closePath();
+      ctx.fill();
+
+      // Текст на флаге
+      ctx.fillStyle = '#000';
+      ctx.font = '8px monospace';
+      ctx.fillText('FIN', flag.x + 8, flag.y + 14);
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ ИГРОКА
+    // ================================================
+    function drawPlayer() {
+      const px = player.x;
+      const py = player.y;
+      const pw = player.width;
+      const ph = player.height;
+
+      // Мигание при неуязвимости
+      if (player.invincible > 0 && Math.floor(frameCount / 4) % 2 === 0) {
+        ctx.globalAlpha = 0.4;
+      }
+
+      // ---- Тело (костюм сталкера) ----
+      const bodyGrad = ctx.createLinearGradient(px, py, px + pw, py + ph);
+      bodyGrad.addColorStop(0, '#4a5a3a');
+      bodyGrad.addColorStop(1, '#2a3a1a');
+      ctx.fillStyle = bodyGrad;
+
+      // Туловище
+      ctx.fillRect(px + 5, py + 12, pw - 10, ph - 20);
+
+      // Голова (с противогазом)
+      ctx.fillStyle = '#3a3a2a';
+      ctx.fillRect(px + 6, py, pw - 12, 14);
+
+      // Линза противогаза (светящаяся зелёная)
+      ctx.fillStyle = '#00ff41';
+      ctx.shadowColor = '#00ff41';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(px + (player.facing > 0 ? pw - 12 : 8), py + 4, 6, 5);
+      ctx.shadowBlur = 0;
+
+      // Ноги (анимация ходьбы)
+      ctx.fillStyle = '#2a2a1a';
+      const legOffset = player.isOnGround ? Math.sin(player.animFrame * 2) * 4 : 0;
+      ctx.fillRect(px + 7, py + ph - 12, 6, 12 + legOffset);
+      ctx.fillRect(px + pw - 13, py + ph - 12, 6, 12 - legOffset);
+
+      // Руки
+      ctx.fillStyle = '#3a4a2a';
+      const armSwing = player.isOnGround ? Math.sin(player.animFrame * 2) * 5 : 0;
+      ctx.fillRect(px, py + 14 + armSwing, 5, 12);
+      ctx.fillRect(px + pw - 5, py + 14 - armSwing, 5, 12);
+
+      // Георгий (лента на груди)
+      ctx.fillStyle = '#ff8800';
+      ctx.fillRect(px + 10, py + 16, 10, 3);
+
+      ctx.globalAlpha = 1;
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: РИСОВАНИЕ ВИГНЕТКИ (затемнение краёв)
+    // ================================================
+    function drawVignette() {
+      const vignetteGrad = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2,
+        canvas.width * 0.3,
+        canvas.width / 2, canvas.height / 2,
+        canvas.width * 0.7
+      );
+      vignetteGrad.addColorStop(0, 'transparent');
+      vignetteGrad.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+      ctx.fillStyle = vignetteGrad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Зелёная полоса сверху (как в старых мониторах)
+      ctx.fillStyle = `rgba(0, 255, 65, ${0.03 + Math.sin(frameCount * 0.02) * 0.01})`;
+      ctx.fillRect(0, 0, canvas.width, 2);
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: GAME OVER
+    // ================================================
+    function gameOver() {
+      gameState = 'gameover';
+      document.getElementById('gameover-info').innerHTML =
+        `Зона победила тебя...<br>Счёт: <b style="color:#ffcc00">${score}</b>`;
+      document.getElementById('gameover-screen').classList.remove('hidden');
+    }
+
+    // ================================================
+    // ФУНКЦИЯ: ПОБЕДА
+    // ================================================
+    function winGame() {
+      gameState = 'win';
+      document.getElementById('win-info').innerHTML =
+        `Ты прошёл все уровни!<br>Итоговый счёт: <b style="color:#00ff41">${score}</b><br>Зона покорена! 🎉`;
+      document.getElementById('win-screen').classList.remove('hidden');
+    }
+
+    // ================================================
+    // СОЗДАЁМ ФОНОВЫЕ ЧАСТИЦЫ РАДИАЦИИ (HTML-элементы)
+    // ================================================
+    function createBackgroundParticles() {
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'radiation-particle';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.top = Math.random() * 100 + 'vh';
+        p.style.animation = `particleFloat ${5 + Math.random() * 10}s ${Math.random() * 5}s infinite`;
+        p.style.opacity = Math.random() * 0.5;
+        document.body.appendChild(p);
+      }
+    }
+    createBackgroundParticles();
+
+    // ================================================
+    // РИСУЕМ СТАРТОВЫЙ ЭКРАН (превью на канвасе)
+    // ================================================
+    function drawStartPreview() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Фон
+      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bg.addColorStop(0, '#0a0a1a');
+      bg.addColorStop(1, '#1a0a0a');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Силуэт ЧАЭС
+      ctx.fillStyle = '#0d0d1a';
+      ctx.beginPath();
+      ctx.moveTo(300, 350);
+      ctx.quadraticCurveTo(450, 170, 600, 350);
+      ctx.fill();
+
+      // Зелёное свечение
+      const g = ctx.createRadialGradient(450, 100, 0, 450, 100, 200);
+      g.addColorStop(0, 'rgba(0,255,65,0.2)');
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Текст
+      ctx.fillStyle = '#00ff41';
+      ctx.font = '16px "Press Start 2P", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚛️ ЗОНА ОТЧУЖДЕНИЯ ⚛️', canvas.width/2, 420);
+    }
+
+    // Рисуем превью при загрузке
+    drawStartPreview();
+  </script>
+</body>
+</html>
